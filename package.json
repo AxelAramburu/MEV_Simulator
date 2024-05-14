@@ -1,0 +1,19 @@
+{
+  "name": "mev_simulator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "ANCHOR_PROVIDER_URL=$(grep ANCHOR_PROVIDER_URL .env | cut -d '=' -f2) ANCHOR_WALLET=$(grep ANCHOR_WALLET .env | cut -d '=' -f2) ts-node index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
