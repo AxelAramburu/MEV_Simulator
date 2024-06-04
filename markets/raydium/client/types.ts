@@ -16,4 +16,6 @@ export type InputInfos = {
     targetPool: string
     inputTokenAmount: TokenAmount
     slippage: Percent
+    symbolTokenIn: string,
+    symbolTokenOut: string,
   }

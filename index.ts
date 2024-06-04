@@ -1,9 +1,15 @@
+import { Connection } from '@solana/web3.js';
+import { Address, AddressUtil } from "@orca-so/common-sdk";
+
 import { swapQuote } from "./markets/orca_whirpools/sdk/client/orcaSwapQuotes";
-import { InputInfos as OrcaInputInfos } from "./markets/orca_whirpools/sdk/client/types";
+import { InputInfosMeteora, InputInfos as OrcaInputInfos } from "./markets/orca_whirpools/sdk/client/types";
 import { InputInfos as RaydiumInputInfos } from "./markets/raydium/client/types";
 
 import { quoteSwapOnlyAmm } from "./markets/raydium/client/raydiumSwapQuote";
 import { BigNumberish, Percent, Token, TokenAmount } from '@raydium-io/raydium-sdk';
+import { getAllWhirlpoolAccountsForConfig } from './markets/orca_whirpools/sdk/src/network/public/fetcher/fetcher-utils';
+import { quoteSwapMeteora } from './markets/meteora/client/meteoraSwapQuote';
+import { SwapQuote } from './markets/meteora/dlmm-sdk/ts-client/src/dlmm/types';
 
 const { createServer, http } = require("http");
 const { Server } = require("socket.io");
@@ -29,8 +35,10 @@ io.on("connection", (socket) => {
         pool_id: json.poolId,
         tokenInKey: json.tokenInKey,
         tokenInDecimals: json.tokenInDecimals,
+        tokenInSymbol: json.tokenInSymbol,
         tokenOutKey: json.tokenOutKey,
         tokenOutDecimals: json.tokenOutDecimals,
+        tokenOutSymbol: json.tokenOutSymbol,
         tickSpacing: json.tickSpacing,
         amountIn: json.amountIn,
       }
@@ -113,6 +121,7 @@ httpServer.on('listening', () => {
 app.get('/orca_quote', async function (req: any, res: any) {
   let url: string = req.originalUrl;
   console.log(url);
+  console.log("Pool address = ", req.query.poolId);
   //Exemple URL: http://localhost:3000/orca_quote?poolId=EzCFMMo43qLLkYQqhLG8Kjj4UL3Dwvk2paf7yqB575KP&tokenInKey=So11111111111111111111111111111111111111112&tokenInDecimals=9&tokenOutKey=JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN&tokenOutDecimals=6&tickSpacing=8&amountIn=1
   
   try {
@@ -120,8 +129,10 @@ app.get('/orca_quote', async function (req: any, res: any) {
       pool_id: req.query.poolId,
       tokenInKey: req.query.tokenInKey,
       tokenInDecimals: req.query.tokenInDecimals,
+      tokenOutSymbol: req.query.tokenOutSymbol,
       tokenOutKey: req.query.tokenOutKey,
       tokenOutDecimals: req.query.tokenOutDecimals,
+      tokenInSymbol: req.query.tokenInSymbol,
       tickSpacing: req.query.tickSpacing,
       amountIn: req.query.amountIn,
     }
@@ -130,18 +141,21 @@ app.get('/orca_quote', async function (req: any, res: any) {
       amountIn: result.amountIn,
       estimatedAmountOut: result.estimatedAmountOut,
       estimatedMinAmountOut: result.estimatedMinAmountOut,
-    })
+    });
+    console.log("------------------------------------------------------------------------------------------------------------------------------");
   } catch (error) {
     console.log("🔴🔴 Error in Orca Simulation");
     res.json({
-      error: error,
-    })
+      error: error.toString(),
+    });
+    console.log("------------------------------------------------------------------------------------------------------------------------------");
   }
 });
 
 app.get('/raydium_quote', async function (req: any, res: any) {
   let url: string = req.originalUrl;
   console.log(url);
+  console.log("Pool address = ", req.query.poolKeys);
   //Exemple URL: http://localhost:3000/raydium_quote?poolKeys=58oQChx4yWmvKdwLLZzBi4ChoCc2fqCUWBkwMihLYQo2&amountIn=1000000&currencyIn=So11111111111111111111111111111111111111112&decimalsIn=9&currencyOut=EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v&decimalsOut=6
 
   try {
@@ -157,11 +171,11 @@ app.get('/raydium_quote', async function (req: any, res: any) {
       Number(req.query.decimalsOut),
     );
   
-    let amountInAtDecimals = Number(req.query.amountIn) * Math.pow(10, Number(req.query.decimalsIn));
+    // let amountInAtDecimals = Number(req.query.amountIn) * Math.pow(10, Number(req.query.decimalsIn));
   
     let tokenAmount: TokenAmount = new TokenAmount(
       inputToken,
-      amountInAtDecimals
+      req.query.amountIn
     );
     
     let slippage: Percent = new Percent(1, 100); //1% Slippage
@@ -171,19 +185,59 @@ app.get('/raydium_quote', async function (req: any, res: any) {
       targetPool: req.query.poolKeys,
       inputTokenAmount: tokenAmount,
       slippage: slippage,
+      symbolTokenIn: req.query.symbolTokenIn,
+      symbolTokenOut: req.query.symbolTokenOut,
     }
     let result = await quoteSwapOnlyAmm(inputParams);
     res.json({
       amountIn: req.query.amountIn,
       estimatedAmountOut: result.amountOut,
       estimatedMinAmountOut: result.minAmountOut
-    })
+    });
+    console.log("------------------------------------------------------------------------------------------------------------------------------");
 
   } catch (error) {
     console.log("🔴🔴 Error in Raydium Simulation");
     console.log(error);
     res.json({
-      error: error,
-    })
+      error: error.toString(),
+    });
+    console.log("------------------------------------------------------------------------------------------------------------------------------");
   }
+});
+
+app.get('/meteora_quote', async function (req: any, res: any) {
+
+  //Exemple URL: http://localhost:3000/meteora_quote?poolId=9H7BB44QhZs6H4GP8XvW7Kq1b9PnDC5UAyaPoqYHoV9f&token0to1=true&amountIn=207139234106450&tokenInSymbol=GME&tokenOutSymbol=SOL
+  try {
+    let url: string = req.originalUrl;
+    console.log(url);
+    console.log("Pool address = ", req.query.poolId);
+
+    if (req.query.token0to1 != "true" && req.query.token0to1 != "false") {
+      throw new Error("Bad boolean on Meteora request");
+    }
+    let inputParams: InputInfosMeteora = {
+      pool_id: req.query.poolId,
+      token0to1: req.query.token0to1 == "true" ? true : false,
+      amountIn: req.query.amountIn,
+      tokenInSymbol: req.query.tokenInSymbol,
+      tokenOutSymbol: req.query.tokenOutSymbol,
+    }    
+    let result = await quoteSwapMeteora(inputParams);
+    res.json({
+      amountIn: result.consumedInAmount,
+      estimatedAmountOut: result.amountOut,
+      estimatedMinAmountOut: result.minAmountOut
+    });
+    console.log("------------------------------------------------------------------------------------------------------------------------------");
+  } catch (error) {
+    console.log("🔴🔴 Error in Meteora Simulation");
+    console.log(error);
+    res.json({
+      error: error.toString(),
+    });
+    console.log("------------------------------------------------------------------------------------------------------------------------------");
+  }
+
 });

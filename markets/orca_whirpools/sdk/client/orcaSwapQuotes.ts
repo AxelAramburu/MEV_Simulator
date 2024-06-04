@@ -38,9 +38,9 @@ export const swapQuote = async (inputInfos: InputInfos):Promise<Amounts>  =>  {
     // console.log("whirlpool_key:", whirlpool_pubkey.toBase58());
 
     const whirlpool = await client.getPool(inputInfos.pool_id);
-
-    // Swap 1 token0 for token1
-    const amount_in = new Decimal(inputInfos.amountIn);
+    
+    const amountInDecimals = +inputInfos.amountIn / Math.pow(10, inputInfos.tokenInDecimals);    
+    let amount_in = new Decimal(amountInDecimals);    
 
     // Obtain swap estimation (run simulation)
     const quote = await swapQuoteByInputToken(
@@ -56,19 +56,18 @@ export const swapQuote = async (inputInfos: InputInfos):Promise<Amounts>  =>  {
     );
     
     // Output the estimation
-    let estimatedAmountIn = DecimalUtil.fromBN(quote.estimatedAmountIn, token0.decimals).toString();
-    let estimatedAmountOut = DecimalUtil.fromBN(quote.estimatedAmountOut, token1.decimals).toString();
-    let estimatedMinAmountOut = DecimalUtil.fromBN(quote.otherAmountThreshold, token1.decimals).toString();
-    console.log("🟢🟢 Done");
-    console.log("estimatedAmountIn:", estimatedAmountIn, "token0");
-    console.log("estimatedAmountOut:", estimatedAmountOut, "token1");
-    console.log("estimatedMinAmountOut:", estimatedMinAmountOut, "token1");
-
+    let estimatedAmountIn = DecimalUtil.fromBN(quote.estimatedAmountIn, 0);
+    let estimatedAmountOut = DecimalUtil.fromBN(quote.estimatedAmountOut, 0);
+    let estimatedMinAmountOut = DecimalUtil.fromBN(quote.otherAmountThreshold, 0);
+    console.log("🟢🟢 Done - ORCA WHIRPOOLS");
+    console.log("estimatedAmountIn:", estimatedAmountIn, inputInfos.tokenInSymbol);
+    console.log("estimatedAmountOut:", estimatedAmountOut, inputInfos.tokenOutSymbol);
+    console.log("estimatedMinAmountOut:", estimatedMinAmountOut, inputInfos.tokenOutSymbol);
+    
     let result: Amounts = {
-      amountIn: estimatedAmountIn,
-      estimatedAmountOut: estimatedAmountOut,
-      estimatedMinAmountOut: estimatedMinAmountOut,
-
+      amountIn: estimatedAmountIn.toString(),
+      estimatedAmountOut: estimatedAmountOut.toString(),
+      estimatedMinAmountOut: estimatedMinAmountOut.toString(),
     }
 
     return result;

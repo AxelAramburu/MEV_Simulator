@@ -50,53 +50,21 @@ export async function quoteSwapOnlyAmm(inputInfos: InputInfos) {
     currencyOut: inputInfos.outputToken,
     slippage: inputInfos.slippage,
   })
+  // let str = JSON.stringify(inputInfos);
+  // console.log(str);
+  // let str2 = JSON.stringify(amountOut);
+  // console.log(str2);
+  // let str3 = JSON.stringify(minAmountOut);
+  // console.log(str3);
 
-  let estimatedAmountIn = inputInfos.inputTokenAmount.toFixed().toString();
-  let estimatedAmountOut = amountOut.toFixed().toString();
-  let estimatedMinAmountOut = minAmountOut.toFixed().toString();
-  console.log("🟢🟢 Done");
-  console.log("estimatedAmountIn:", estimatedAmountIn, "token0");
-  console.log("estimatedAmountOut:", estimatedAmountOut, "token1");
-  console.log("estimatedMinAmountOut:", estimatedMinAmountOut, "token1");
+  let estimatedAmountIn = inputInfos.inputTokenAmount.numerator.toString();
+  let estimatedAmountOut = amountOut.numerator.toString();
+  let estimatedMinAmountOut = minAmountOut.numerator.toString();
+  console.log("🟢🟢 Done - RAYDIUM");
+  console.log("estimatedAmountIn:", estimatedAmountIn, inputInfos.symbolTokenIn);
+  console.log("estimatedAmountOut:", estimatedAmountOut, inputInfos.symbolTokenOut);
+  console.log("estimatedMinAmountOut:", estimatedMinAmountOut, inputInfos.symbolTokenOut);
 
-  return ({amountOut: amountOut.toFixed(), minAmountOut: minAmountOut.toFixed()});
+  return ({amountOut: estimatedAmountOut, minAmountOut: estimatedMinAmountOut});
 
-  // -------- step 2: create instructions by SDK function --------
-  // const { innerTransactions } = await Liquidity.makeSwapInstructionSimple({
-  //   connection,
-  //   poolKeys,
-  //   userKeys: {
-  //     tokenAccounts: input.walletTokenAccounts,
-  //     owner: input.wallet.publicKey,
-  //   },
-  //   amountIn: input.inputTokenAmount,
-  //   amountOut: minAmountOut,
-  //   fixedSide: 'in',
-  //   makeTxVersion,
-  // })
-
-  console.log('amountOut:', amountOut.toFixed(), '  minAmountOut: ', minAmountOut.toFixed())
-
-  // return { txids: await buildAndSendTx(innerTransactions) }
 }
-
-// async function howToUse() {
-//   const inputToken = DEFAULT_TOKEN.USDC // USDC
-//   const outputToken = DEFAULT_TOKEN.RAY // RAY
-//   const targetPool = 'pool id' // USDC-RAY pool
-//   const inputTokenAmount = new TokenAmount(inputToken, 10000)
-//   const slippage = new Percent(1, 100)
-//   const walletTokenAccounts = await getWalletTokenAccount(connection, wallet.publicKey)
-
-//   swapOnlyAmm({
-//     outputToken,
-//     targetPool,
-//     inputTokenAmount,
-//     slippage,
-//     walletTokenAccounts,
-//     wallet: wallet,
-//   }).then(({ txids }) => {
-//     /** continue with txids */
-//     console.log('txids', txids)
-//   })
-// }
