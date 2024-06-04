@@ -1,15 +1,15 @@
-import { Connection } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
 import { Address, AddressUtil } from "@orca-so/common-sdk";
 
-import { swapQuote } from "./markets/orca_whirpools/sdk/client/orcaSwapQuotes";
-import { InputInfosMeteora, InputInfos as OrcaInputInfos } from "./markets/orca_whirpools/sdk/client/types";
+import { swapQuote } from "./markets/orca_whirpools/client/orcaSwapQuotes";
+import { InputInfosMeteora, InputWhirpoolsTickArrays, InputInfos as OrcaInputInfos } from "./markets/orca_whirpools/client/types";
 import { InputInfos as RaydiumInputInfos } from "./markets/raydium/client/types";
 
 import { quoteSwapOnlyAmm } from "./markets/raydium/client/raydiumSwapQuote";
 import { BigNumberish, Percent, Token, TokenAmount } from '@raydium-io/raydium-sdk';
-import { getAllWhirlpoolAccountsForConfig } from './markets/orca_whirpools/sdk/src/network/public/fetcher/fetcher-utils';
 import { quoteSwapMeteora } from './markets/meteora/client/meteoraSwapQuote';
 import { SwapQuote } from './markets/meteora/dlmm-sdk/ts-client/src/dlmm/types';
+import { PDAUtil, SwapUtils, buildDefaultAccountFetcher } from '@orca-so/whirlpools-sdk';
 
 const { createServer, http } = require("http");
 const { Server } = require("socket.io");
@@ -233,6 +233,61 @@ app.get('/meteora_quote', async function (req: any, res: any) {
     console.log("------------------------------------------------------------------------------------------------------------------------------");
   } catch (error) {
     console.log("🔴🔴 Error in Meteora Simulation");
+    console.log(error);
+    res.json({
+      error: error.toString(),
+    });
+    console.log("------------------------------------------------------------------------------------------------------------------------------");
+  }
+
+});
+
+app.get('/whirpools_tick_arrays', async function (req: any, res: any) {
+
+  //Exemple URL: http://localhost:3000/whirpools_tick_arrays?tickCurrentIndex=-29686&tickSpacing=8&aToB=true&programId=whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc&whirlpoolAddress=4E6q7eJE6vBNdquqzYYi5gvzd5MNpwiQKhjbRTRQGuQd
+  try {
+    let url: string = req.originalUrl;
+    console.log(url);
+    console.log("Get tick arrays");
+    console.log("Pool address = ", req.query.whirlpoolAddress);
+
+    // tickCurrentIndex: number,
+    // tickSpacing: number,
+    // aToB: boolean,
+    // programId: PublicKey,
+    // whirlpoolAddress: PublicKey,
+    // fetcher: WhirlpoolAccountFetcherInterface,
+    // opts?: WhirlpoolAccountFetchOptions
+
+    let inputParams: InputWhirpoolsTickArrays = {
+      tickCurrentIndex: req.query.tickCurrentIndex,
+      tickSpacing: req.query.tickSpacing,
+      aToB: req.query.aToB,
+      programId: req.query.programId,
+      whirlpoolAddress: req.query.whirlpoolAddress,
+    }   
+    let connection = new Connection(process.env.ANCHOR_PROVIDER_URL);
+    let fetcher = buildDefaultAccountFetcher(connection);
+
+    let result = await SwapUtils.getTickArrays(
+      +inputParams.tickCurrentIndex,
+      +inputParams.tickSpacing,
+      inputParams.aToB,
+      new PublicKey(inputParams.programId),
+      new PublicKey(inputParams.whirlpoolAddress),
+      fetcher
+    );
+    let oracle = PDAUtil.getOracle(new PublicKey(inputParams.programId), new PublicKey(inputParams.whirlpoolAddress));
+    res.json({
+      tick_array_0: result[0].address,
+      tick_array_1: result[1].address,
+      tick_array_2: result[2].address,
+      oracle: oracle.publicKey,
+
+    });
+    console.log("------------------------------------------------------------------------------------------------------------------------------");
+  } catch (error) {
+    console.log("🔴🔴 Error in Get Whirpools tick arrays");
     console.log(error);
     res.json({
       error: error.toString(),

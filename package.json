@@ -11,18 +11,23 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@coral-xyz/anchor": "^0.30.0",
+    "@coral-xyz/anchor": "^0.27.0",
     "@meteora-ag/dlmm": "^1.0.38",
-    "@orca-so/common-sdk": "^0.5.7",
+    "@orca-so/whirlpools-sdk": "^0.12.8",
     "@raydium-io/raydium-sdk": "^1.3.1-beta.52",
     "@solana/web3.js": "^1.91.8",
+    "decimal.js": "^10.4.3",
     "engine.io": "^6.5.4",
     "express": "^4.19.2",
     "socket.io": "^4.7.5",
-    "ws": "^8.17.0"
+    "ws": "^8.17.0",
+    "rpc-websockets": "7.11.0"
   },
   "devDependencies": {
     "@types/ws": "^8.5.10",
     "nodemon": "^3.1.0"
-  }
+  },
+  "resolutions": {
+    "rpc-websockets": "7.11.0"
+ }
 }
