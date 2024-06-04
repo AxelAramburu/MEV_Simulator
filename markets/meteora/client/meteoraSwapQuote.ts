@@ -1,5 +1,5 @@
 import { BN } from "@coral-xyz/anchor";
-import { InputInfos, InputInfosMeteora } from "../../orca_whirpools/sdk/client/types";
+import { InputInfos, InputInfosMeteora } from "../../orca_whirpools/client/types";
 import DLMM from '@meteora-ag/dlmm'
 import { Connection, PublicKey } from "@solana/web3.js";
 
